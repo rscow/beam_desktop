@@ -19,3 +19,7 @@
 - Asked: Add File-menu Save and Open commands that persist support type, span, section, deflection limit, and loads, after removing Saving designs from the spec's Out of scope section.
 - Changed: Confirmed Saving designs was not present in Out of scope, updated the spec to require local design files, added an editable deflection-limit ratio, implemented validated versioned JSON persistence, added File → Save/Open with keyboard shortcuts and error dialogs, restored all beam and load inputs on open, documented the feature, and added persistence and calculation tests.
 - Worked: Yes. All 13 automated tests passed, Python compilation passed, and a hidden-window File-menu save/open round-trip restored the complete design successfully.
+
+- Asked: Add an Export results button that saves x, shear, moment, and deflection along the beam to a CSV file that opens in Excel.
+- Changed: Added an Export results button that recalculates current inputs and writes every analysis station to a `.csv` file with x (ft), V (kip), M (kip-ft), and deflection (in) columns; used an Excel-friendly UTF-8 BOM and CRLF rows; updated the spec and README; and added export tests.
+- Worked: Yes. All 15 automated tests passed, Python compilation passed, and a hidden-window button smoke test exported and reread all 801 result rows successfully.

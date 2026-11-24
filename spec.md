@@ -138,6 +138,8 @@ Catalog values and any adjustments must be sourced and documented in
 - Pass/fail and utilization for deflection
 - Numeric units clearly shown
 - Positive and negative sign conventions clearly identified
+- An Export results button that saves x, shear, moment, and deflection values
+  along the beam as an Excel-compatible CSV file with units in the headers
 
 Draw diagrams and cross sections in Tkinter canvases. Diagrams must resize with
 the window and show labeled axes, values, and units without requiring a plotting
