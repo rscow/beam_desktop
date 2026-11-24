@@ -41,6 +41,7 @@ class AnalysisInput:
     uniform_load: UniformLoad = field(default_factory=UniformLoad)
     axial_loads: tuple[AxialLoad, ...] = ()
     include_self_weight: bool = True
+    deflection_limit_ratio: float = 360.0
     sample_count: int = 801
 
 
@@ -80,6 +81,8 @@ def validate(inputs: AnalysisInput) -> None:
         raise ValueError("Support condition must be simply supported or cantilever.")
     if not isfinite(inputs.span_ft) or inputs.span_ft <= 0:
         raise ValueError("Span must be greater than zero.")
+    if not isfinite(inputs.deflection_limit_ratio) or inputs.deflection_limit_ratio <= 0:
+        raise ValueError("Deflection limit ratio must be greater than zero.")
     if inputs.sample_count < 101:
         raise ValueError("At least 101 calculation samples are required.")
     for load in inputs.point_loads:
@@ -204,7 +207,7 @@ def analyze(inputs: AnalysisInput) -> AnalysisResult:
         axial_stress - strong_stress - weak_stress,
     )
     combined_stress_psi = max(abs(value) for value in corners)
-    deflection_limit = length / 360
+    deflection_limit = length / inputs.deflection_limit_ratio
     max_deflection = abs(deflection[max_deflection_index])
 
     return AnalysisResult(

@@ -18,3 +18,7 @@ python3 -m unittest discover -s tests -v
 The interface recalculates as inputs change and includes beam, shear, moment,
 deflection, and cross-section views. It is an educational tool, not final
 structural-design software.
+
+Use **File → Save** to write a versioned `.beam.json` design file and
+**File → Open** to restore it. Design files retain the member, support, span,
+deflection limit, section-view location, self-weight setting, and all loads.

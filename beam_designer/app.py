@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import filedialog, messagebox, ttk
 
 from .analysis import AnalysisInput, AxialLoad, PointLoad, UniformLoad, analyze
 from .catalog import CATALOG, Member
+from .persistence import SavedDesign, open_design, save_design
 
 
 NAVY = "#17324d"
@@ -34,6 +35,7 @@ class BeamDesignerApp:
         self.selected_axial = 0
         self._pending: str | None = None
         self._style()
+        self._build_menu()
         self._build()
         self._bind_variables()
         self._populate_members()
@@ -53,6 +55,16 @@ class BeamDesignerApp:
         style.configure("Pass.TLabel", foreground=GREEN, font=("TkDefaultFont", 10, "bold"))
         style.configure("Fail.TLabel", foreground=RED, font=("TkDefaultFont", 10, "bold"))
         style.configure("Status.TLabel", foreground=MUTED)
+
+    def _build_menu(self) -> None:
+        menu = tk.Menu(self.root)
+        file_menu = tk.Menu(menu, tearoff=False)
+        file_menu.add_command(label="Save…", accelerator="Ctrl+S", command=self.save_file)
+        file_menu.add_command(label="Open…", accelerator="Ctrl+O", command=self.open_file)
+        menu.add_cascade(label="File", menu=file_menu)
+        self.root.configure(menu=menu)
+        self.root.bind_all("<Control-o>", lambda _event: self.open_file())
+        self.root.bind_all("<Control-s>", lambda _event: self.save_file())
 
     def _build(self) -> None:
         header = ttk.Frame(self.root, style="Header.TFrame", padding=(20, 12))
@@ -94,11 +106,13 @@ class BeamDesignerApp:
         self.udl_start_var = tk.StringVar(value="5")
         self.udl_end_var = tk.StringVar(value="15")
         self.self_weight_var = tk.BooleanVar(value=True)
+        self.deflection_limit_var = tk.StringVar(value="360")
 
         self._labeled_combo(panel, "Support condition", self.support_var, ("Simply supported", "Cantilever, fixed at left"))
         self._labeled_entry(panel, "Span", self.span_var, "ft")
         self._labeled_combo(panel, "Member table", self.material_var, tuple(CATALOG))
         self.member_combo = self._labeled_combo(panel, "Member", self.member_var, ())
+        self._labeled_entry(panel, "Deflection limit", self.deflection_limit_var, "L / ratio")
 
         ttk.Label(panel, text="Point loads", style="Section.TLabel").pack(anchor="w", pady=(14, 4))
         self.point_container = ttk.Frame(panel)
@@ -143,7 +157,7 @@ class BeamDesignerApp:
         checks = ttk.Frame(output)
         checks.pack(fill="x", pady=(0, 8))
         self.bending_var = tk.StringVar(value="Bending —")
-        self.deflection_var = tk.StringVar(value="Deflection L/360 —")
+        self.deflection_var = tk.StringVar(value="Deflection —")
         self.bending_label = ttk.Label(checks, textvariable=self.bending_var, padding=8)
         self.deflection_label = ttk.Label(checks, textvariable=self.deflection_var, padding=8)
         self.bending_label.pack(side="left", fill="x", expand=True)
@@ -192,7 +206,7 @@ class BeamDesignerApp:
     def _bind_variables(self) -> None:
         variables = (
             self.support_var, self.span_var, self.member_var, self.udl_var,
-            self.udl_start_var, self.udl_end_var, self.self_weight_var,
+            self.udl_start_var, self.udl_end_var, self.self_weight_var, self.deflection_limit_var,
         )
         for variable in variables:
             variable.trace_add("write", lambda *_args: self.schedule_calculation())
@@ -231,16 +245,23 @@ class BeamDesignerApp:
         self.point_button.configure(state="disabled" if len(self.point_rows) >= 5 else "normal")
         self.schedule_calculation()
 
-    def add_axial_load(self) -> None:
+    def add_axial_load(
+        self,
+        direction_value: str = "Compression",
+        magnitude_value: str = "",
+        position_value: str = "",
+        offset_x_value: str = "0",
+        offset_y_value: str = "0",
+    ) -> None:
         if len(self.axial_rows) >= 5:
             return
         outer = ttk.LabelFrame(self.axial_container, text=f"Axial load {len(self.axial_rows) + 1}", padding=5)
         outer.pack(fill="x", pady=3)
-        direction = tk.StringVar(value="Compression")
-        magnitude = tk.StringVar()
-        position = tk.StringVar()
-        offset_x = tk.StringVar(value="0")
-        offset_y = tk.StringVar(value="0")
+        direction = tk.StringVar(value=direction_value)
+        magnitude = tk.StringVar(value=magnitude_value)
+        position = tk.StringVar(value=position_value)
+        offset_x = tk.StringVar(value=offset_x_value)
+        offset_y = tk.StringVar(value=offset_y_value)
         top = ttk.Frame(outer)
         top.pack(fill="x")
         ttk.Combobox(top, textvariable=direction, values=("Tension", "Compression"), state="readonly", width=11).pack(side="left")
@@ -320,6 +341,7 @@ class BeamDesignerApp:
             uniform_load=uniform,
             axial_loads=axials,
             include_self_weight=self.self_weight_var.get(),
+            deflection_limit_ratio=self._float(self.deflection_limit_var, "Deflection limit ratio"),
         )
 
     def schedule_calculation(self) -> None:
@@ -350,12 +372,86 @@ class BeamDesignerApp:
         self.max_deflection_var.set(f"{result.max_deflection_in:.3f} in at {result.max_deflection_location_ft:.2f} ft")
         allow = inputs.member.allowable_bending / 1000
         self.bending_var.set(f"{'PASS' if result.bending_passes else 'FAIL'} — Bending {result.combined_stress_ksi:.2f}/{allow:.2f} ksi ({result.bending_utilization:.0%})")
-        self.deflection_var.set(f"{'PASS' if result.deflection_passes else 'FAIL'} — Deflection {result.max_deflection_in:.3f}/{result.deflection_limit_in:.3f} in ({result.deflection_utilization:.0%})")
+        self.deflection_var.set(f"{'PASS' if result.deflection_passes else 'FAIL'} — Deflection L/{inputs.deflection_limit_ratio:g}: {result.max_deflection_in:.3f}/{result.deflection_limit_in:.3f} in ({result.deflection_utilization:.0%})")
         self.bending_label.configure(style="Pass.TLabel" if result.bending_passes else "Fail.TLabel")
         self.deflection_label.configure(style="Pass.TLabel" if result.deflection_passes else "Fail.TLabel")
         self.source_var.set(f"{inputs.member.source}\n{inputs.member.assumptions}")
         self.status_var.set("Analysis updated. Downward loads are positive; diagrams use the sign convention shown by their axes.")
         self._draw_all(section)
+
+    def save_file(self) -> None:
+        try:
+            inputs = self._read_inputs()
+            design = SavedDesign.from_analysis(inputs, self.material_var.get(), float(self.section_var.get()))
+            design.analysis_input()
+        except (ValueError, KeyError, StopIteration) as error:
+            messagebox.showerror("Cannot save design", str(error), parent=self.root)
+            return
+        path = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="Save beam design",
+            defaultextension=".beam.json",
+            filetypes=(("Beam Designer files", "*.beam.json"), ("JSON files", "*.json"), ("All files", "*.*")),
+        )
+        if not path:
+            return
+        try:
+            save_design(path, design)
+        except OSError as error:
+            messagebox.showerror("Cannot save design", str(error), parent=self.root)
+            return
+        self.status_var.set(f"Saved design to {path}")
+
+    def open_file(self) -> None:
+        path = filedialog.askopenfilename(
+            parent=self.root,
+            title="Open beam design",
+            filetypes=(("Beam Designer files", "*.beam.json"), ("JSON files", "*.json"), ("All files", "*.*")),
+        )
+        if not path:
+            return
+        try:
+            design = open_design(path)
+        except (OSError, ValueError) as error:
+            messagebox.showerror("Cannot open design", str(error), parent=self.root)
+            return
+        self._apply_design(design)
+        self.status_var.set(f"Opened design from {path}")
+
+    def _apply_design(self, design: SavedDesign) -> None:
+        inputs = design.analysis_input()
+        for row in self.point_rows + self.axial_rows:
+            row["frame"].destroy()  # type: ignore[union-attr]
+        self.point_rows.clear()
+        self.axial_rows.clear()
+        self.point_button.configure(state="normal")
+        self.axial_button.configure(state="normal")
+
+        self.support_var.set("Simply supported" if inputs.support == "simple" else "Cantilever, fixed at left")
+        self.span_var.set(f"{inputs.span_ft:g}")
+        self.material_var.set(design.material_table)
+        self.member_var.set(design.member_name)
+        self.deflection_limit_var.set(f"{inputs.deflection_limit_ratio:g}")
+        self.self_weight_var.set(inputs.include_self_weight)
+        uniform = inputs.uniform_load
+        uniform_end = inputs.span_ft if uniform.end_ft is None else uniform.end_ft
+        full_span = uniform.start_ft == 0 and uniform_end == inputs.span_ft
+        self.udl_mode_var.set("Full span" if full_span else "Partial span")
+        self.udl_var.set(f"{uniform.magnitude_kip_ft:g}")
+        self.udl_start_var.set(f"{uniform.start_ft:g}")
+        self.udl_end_var.set(f"{uniform_end:g}")
+        for load in inputs.point_loads:
+            self.add_point_load(f"{load.magnitude_kip:g}", f"{load.position_ft:g}")
+        for load in inputs.axial_loads:
+            self.add_axial_load(
+                "Tension" if load.tension else "Compression",
+                f"{load.magnitude_kip:g}",
+                f"{load.position_ft:g}",
+                f"{load.horizontal_offset_in:g}",
+                f"{load.vertical_offset_in:g}",
+            )
+        self.section_var.set(design.section_location_ft)
+        self.calculate()
 
     def _section_scale_changed(self) -> None:
         if hasattr(self, "section_entry_var"):

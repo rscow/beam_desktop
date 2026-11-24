@@ -15,3 +15,7 @@
 - Asked: Run every validation case in spec.md against the app's beam calculations and report expected versus actual values in a table.
 - Changed: Executed all five retained steel and lumber cases with self-weight disabled, compared reactions, maximum shear, moment, deflection, and locations against closed-form solutions, and corrected stale cantilever and lumber deflection values plus the missing partial-UDL deflection in the retained hand calculations.
 - Worked: Yes. All statics values matched at the reported precision; every deflection result was within 0.0000031 in of its closed-form value, and all automated tests passed.
+
+- Asked: Add File-menu Save and Open commands that persist support type, span, section, deflection limit, and loads, after removing Saving designs from the spec's Out of scope section.
+- Changed: Confirmed Saving designs was not present in Out of scope, updated the spec to require local design files, added an editable deflection-limit ratio, implemented validated versioned JSON persistence, added File → Save/Open with keyboard shortcuts and error dialogs, restored all beam and load inputs on open, documented the feature, and added persistence and calculation tests.
+- Worked: Yes. All 13 automated tests passed, Python compilation passed, and a hidden-window File-menu save/open round-trip restored the complete design successfully.

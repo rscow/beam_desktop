@@ -104,6 +104,18 @@ class AnalysisTests(unittest.TestCase):
         expected_total_kip = STEEL.weight * 20 / 1000
         self.assertAlmostEqual(result.reaction_left_kip + result.reaction_right_kip, expected_total_kip, places=6)
 
+    def test_custom_deflection_limit_ratio(self) -> None:
+        result = analyze(AnalysisInput(
+            support="simple",
+            span_ft=20,
+            member=STEEL,
+            uniform_load=UniformLoad(1, 0, 20),
+            include_self_weight=False,
+            deflection_limit_ratio=240,
+        ))
+        self.assertAlmostEqual(result.deflection_limit_in, 1.0, places=9)
+        self.assertAlmostEqual(result.deflection_utilization, result.max_deflection_in, places=9)
+
     def test_load_outside_span_is_rejected(self) -> None:
         with self.assertRaisesRegex(ValueError, "located on the beam"):
             analyze(AnalysisInput(

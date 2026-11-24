@@ -23,6 +23,8 @@ final structural-design tool.
   input when a calculation cannot run.
 - Bundle member-property data with the application. The MVP does not require a
   database or external service.
+- Provide a File menu with Save and Open commands. Save designs to a local file
+  and restore them without requiring a network connection.
 
 ## Window layout
 
@@ -45,7 +47,13 @@ and a restrained, professional visual style. Load an example beam at startup.
 - Point loads with magnitude and position
 - Uniform loads, including full-span and partial-span loads
 - Steel W-shapes or lumber members from bundled property tables
+- Deflection limit as a span ratio, defaulting to L/360
 - Downward loads are positive
+
+Saved designs must retain the support condition, span, selected member section,
+deflection limit, cross-section location, self-weight option, and all transverse
+and axial loads. Reject malformed or unsupported design files without replacing
+the currently open design.
 
 Use unit labels beside every input. Keep catalog property values and material
 assumptions clearly identified.
@@ -72,7 +80,7 @@ assumptions clearly identified.
 - Elastic deflection
 - Bending stress: `fb = M / Sx`
 - Bending utilization: `fb / allowable bending stress`
-- Deflection utilization: `maximum deflection / (span / 360)`
+- Deflection utilization: `maximum deflection / (span / selected limit ratio)`
 - Shear and beam diagrams
 
 Do not add a shear strength check unless shear properties and a validated
