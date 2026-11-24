@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Beam Designer</title>
+  <style>
+    :root { color-scheme: light; --navy:#17324d; --blue:#2874a6; --pale:#eef4f7; --line:#ccd7df; --red:#b42318; --green:#1f7a4d; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Arial,sans-serif; color:#1d2730; background:#f6f8fa; }
+    header { background:var(--navy); color:white; padding:18px 24px; }
+    header h1 { margin:0 0 4px; font-size:24px; }
+    header p { margin:0; opacity:.85; }
+    main { max-width:1180px; margin:auto; padding:20px; display:grid; grid-template-columns:330px 1fr; gap:20px; }
+    .panel { background:white; border:1px solid var(--line); border-radius:8px; padding:16px; }
+    h2 { margin:0 0 14px; font-size:18px; color:var(--navy); }
+    h3 { margin:16px 0 8px; font-size:15px; }
+    label { display:block; font-size:13px; font-weight:700; margin:9px 0 4px; }
+    input,select { width:100%; height:38px; border:1px solid #aebbc4; border-radius:5px; padding:7px 9px; background:white; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .load-row { display:grid; grid-template-columns:76px 76px 28px; gap:6px; align-items:end; margin-bottom:7px; }
+    .load-field label { display:block; min-height:30px; margin:0 0 2px; font-size:11px; line-height:14px; }
+    .load-row input { min-width:0; }
+    .axial-row { display:grid; grid-template-columns:1fr 1fr 28px; gap:6px; padding:8px; margin-bottom:8px; border:1px solid var(--line); border-radius:6px; background:#fbfcfd; }
+    .axial-field { min-width:0; }
+    .axial-field label { min-height:28px; margin:0 0 2px; font-size:11px; line-height:14px; }
+    .axial-row select,.axial-row input { height:36px; }
+    .axial-row .remove { grid-row:1 / 4; grid-column:3; align-self:end; }
+    button { border:0; border-radius:5px; cursor:pointer; }
+    .remove { height:38px; background:#edf1f4; color:var(--red); font-size:18px; }
+    .secondary { width:100%; margin-top:7px; padding:9px; background:var(--pale); color:var(--navy); font-weight:700; }
+    .check { display:flex; align-items:center; gap:8px; margin-top:12px; font-size:14px; }
+    .check input { width:16px; height:16px; }
+    .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:12px; }
+    .stat { border:1px solid var(--line); border-radius:6px; padding:10px; background:#fbfcfd; }
+    .stat span { display:block; color:#657783; font-size:12px; }
+    .stat strong { display:block; margin-top:4px; font-size:16px; }
+    .checks { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    .check-card { border-left:5px solid; border-radius:5px; padding:10px 12px; background:#f7f9fa; }
+    .pass { border-left-color:var(--green); }
+    .fail { border-left-color:var(--red); }
+    .chart { height:170px; border:1px solid var(--line); border-radius:6px; margin-bottom:10px; background:white; }
+    .section-chart { height:260px; border:1px solid var(--line); border-radius:6px; margin-bottom:10px; background:white; }
+    .section-position { display:grid; grid-template-columns:1fr 70px; align-items:center; gap:10px; margin:-4px 0 10px; }
+    .section-position label { margin:0; }
+    .section-position input { height:28px; padding:0; }
+    svg { width:100%; height:100%; display:block; }
+    .beam-source { margin-top:10px; font-size:12px; color:#5d6d78; line-height:1.5; }
+    .beam-source a { color:#25658b; }
+    @media (max-width:850px) { main { grid-template-columns:1fr; } .stats { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Beam Designer</h1>
+    <p>Educational shear, moment, and deflection analysis</p>
+  </header>
+  <main>
+    <aside class="panel">
+      <h2>Beam and loads</h2>
+      <label for="support">Support condition</label>
+      <select id="support">
+        <option value="simple">Simply supported</option>
+        <option value="cantilever">Cantilever, fixed at left</option>
+      </select>
+      <label for="span">Span (ft)</label>
+      <input id="span" type="number" min="0.1" step="0.1" value="20">
+      <label for="material">Member table</label>
+      <select id="material">
+        <option value="steel">Steel W-shapes</option>
+        <option value="lumber">Douglas Fir-Larch lumber</option>
+      </select>
+      <label for="shape">Member</label>
+      <select id="shape"></select>
+      <h3>Point loads</h3>
+      <div id="pointLoads"></div>
+      <button id="addPoint" class="secondary" type="button">Add point load</button>
+      <h3>Axial loads</h3>
+      <div id="axialLoads"></div>
+      <button id="addAxial" class="secondary" type="button">Add axial load</button>
+      <h3>Uniform load</h3>
+      <div class="row">
+        <div><label for="udl">Magnitude (kip/ft)</label><input id="udl" type="number" step="0.1" value="1"></div>
+        <div><label for="udlEnd">Load extent</label><select id="udlEnd"><option value="full">Full span</option><option value="partial">Partial span</option></select></div>
+      </div>
+      <div id="udlRange" class="row" style="display:none">
+        <div><label for="udlStart">Start (ft)</label><input id="udlStart" type="number" min="0" step="0.1" value="5"></div>
+        <div><label for="udlEndPos">End (ft)</label><input id="udlEndPos" type="number" min="0" step="0.1" value="15"></div>
+      </div>
+      <label class="check"><input id="selfWeight" type="checkbox" checked> Include beam self-weight</label>
+      <div id="beamSource" class="beam-source"></div>
+    </aside>
+    <section>
+      <div class="stats">
+        <div class="stat"><span>Maximum shear</span><strong id="maxV">-</strong></div>
+        <div class="stat"><span>Maximum moment</span><strong id="maxM">-</strong></div>
+        <div class="stat"><span>Maximum deflection</span><strong id="maxD">-</strong></div>
+      </div>
+      <div class="checks">
+        <div id="bendingCard" class="check-card"><strong>Bending</strong><div id="bendingText">-</div></div>
+        <div id="deflectionCard" class="check-card"><strong>Deflection L/360</strong><div id="deflectionText">-</div></div>
+      </div>
+      <div class="chart" id="beamChart"></div>
+      <div class="chart" id="shearChart"></div>
+      <div class="chart" id="momentChart"></div>
+      <div class="chart" id="deflectionChart"></div>
+      <div class="section-position">
+        <label for="sectionLocation">Cross-section location along span</label>
+        <input id="sectionLocation" type="number" min="0" step="0.1" value="10">
+      </div>
+      <input id="sectionSlider" type="range" min="0" max="20" step="0.1" value="10" aria-label="Cross-section location along span">
+      <div class="section-chart" id="crossSectionChart"></div>
+    </section>
+  </main>
+
+  <script>
+    const STEEL_SOURCE = "AISC Steel Construction Manual / AISC Shapes Database v16.0";
+    const STEEL_URL = "https://www.aisc.org/publications/steel-construction-manual-resources/";
+    const NDS_SOURCE = "2024 NDS Supplement, AWC, Table 4A";
+    const NDS_URL = "https://awc.org/resources/2024-nds-supplement/";
+
+    const catalog = {
+      steel: [
+        {name:"W12x26", area:7.65, Ix:204, Sx:33.4, Iy:17.3, Sy:5.34, weight:26, E:29000, allow:23760, d:12.2, bf:6.49, tf:0.380, tw:0.230},
+        {name:"W14x22", area:6.49, Ix:199, Sx:29.0, Iy:7.0, Sy:2.80, weight:22, E:29000, allow:23760, d:13.7, bf:5.00, tf:0.335, tw:0.230},
+        {name:"W16x26", area:7.68, Ix:301, Sx:38.4, Iy:9.59, Sy:3.49, weight:26, E:29000, allow:23760, d:15.7, bf:5.50, tf:0.345, tw:0.250}
+      ],
+      lumber: [
+        {name:"2x8 Douglas Fir-Larch No. 2", width:1.5, depth:7.25, E:1600000, allow:900, weightDensity:35},
+        {name:"2x10 Douglas Fir-Larch No. 2", width:1.5, depth:9.25, E:1600000, allow:900, weightDensity:35},
+        {name:"2x12 Douglas Fir-Larch No. 2", width:1.5, depth:11.25, E:1600000, allow:850, weightDensity:35}
+      ]
+    };
+
+    catalog.lumber.forEach(x => {
+      x.Ix = x.width * Math.pow(x.depth,3) / 12;
+      x.Sx = x.width * Math.pow(x.depth,2) / 6;
+      x.Iy = x.depth * Math.pow(x.width,3) / 12;
+      x.Sy = x.depth * Math.pow(x.width,2) / 6;
+      x.area = x.width*x.depth;
+      x.d = x.depth;
+      x.bf = x.width;
+      x.weight = x.width * x.depth / 144 * x.weightDensity;
+    });
+
+    const pointContainer=document.getElementById("pointLoads");
+    const maxPointLoads=5;
+    let pointLoadId=0;
+    const axialContainer=document.getElementById("axialLoads");
+    const maxAxialLoads=5;
+    let axialLoadId=0;
+    let selectedAxialId=null;
+
+    function addPointLoad(magnitude="",position="") {
+      if(pointContainer.children.length>=maxPointLoads) return;
+      const currentId=pointLoadId++;
+      const row=document.createElement("div");
+      row.className="load-row";
+      row.innerHTML=`<div class="load-field">
+          <label for="point-magnitude-${currentId}">Magnitude (kips)</label>
+          <input id="point-magnitude-${currentId}" type="number" step="0.1" value="${magnitude}" title="Point load magnitude in kips">
+        </div>
+        <div class="load-field">
+          <label for="point-location-${currentId}">Location (ft)</label>
+          <input id="point-location-${currentId}" type="number" step="0.1" value="${position}" title="Point load location in feet">
+        </div>
+        <button class="remove" type="button" aria-label="Remove point load" title="Remove point load">&times;</button>`;
+      row.querySelector("button").addEventListener("click",()=>{row.remove();calculate();});
+      row.querySelectorAll("input").forEach(input=>input.addEventListener("input",calculate));
+      pointContainer.appendChild(row);
+    }
+
+    function addAxialLoad(direction="compression",magnitude="",position="",offsetX="",offsetY="") {
+      if(axialContainer.children.length>=maxAxialLoads) return;
+      const currentId=axialLoadId++;
+      const row=document.createElement("div");
+      row.className="axial-row";
+      row.dataset.axialId=currentId;
+      row.innerHTML=`<div class="axial-field">
+          <label for="axial-direction-${currentId}">Direction</label>
+          <select id="axial-direction-${currentId}">
+            <option value="tension" ${direction==="tension"?"selected":""}>Tension</option>
+            <option value="compression" ${direction==="compression"?"selected":""}>Compression</option>
+          </select>
+        </div>
+        <div class="axial-field">
+          <label for="axial-magnitude-${currentId}">Magnitude (kips)</label>
+          <input id="axial-magnitude-${currentId}" type="number" min="0" step="0.1" value="${magnitude}">
+        </div>
+        <div class="axial-field">
+          <label for="axial-location-${currentId}">Beam location (ft)</label>
+          <input id="axial-location-${currentId}" type="number" min="0" step="0.1" value="${position}">
+        </div>
+        <div class="axial-field">
+          <label for="axial-x-${currentId}">Horizontal offset (in)</label>
+          <input id="axial-x-${currentId}" type="number" step="0.1" value="${offsetX}">
+        </div>
+        <div class="axial-field">
+          <label for="axial-y-${currentId}">Vertical offset (in)</label>
+          <input id="axial-y-${currentId}" type="number" step="0.1" value="${offsetY}">
+        </div>
+        <button class="remove" type="button" aria-label="Remove axial load" title="Remove axial load">&times;</button>`;
+      row.addEventListener("click",()=>{selectedAxialId=currentId;calculate();});
+      row.querySelector("button").addEventListener("click",(event)=>{
+        event.stopPropagation();
+        row.remove();
+        selectedAxialId=axialContainer.querySelector(".axial-row")?.dataset.axialId||null;
+        calculate();
+      });
+      row.querySelectorAll("input,select").forEach(input=>input.addEventListener("input",calculate));
+      axialContainer.appendChild(row);
+      if(selectedAxialId===null) selectedAxialId=currentId;
+    }
+
+    function axialLoads(L) {
+      return [...axialContainer.querySelectorAll(".axial-row")].map(row=>{
+        const id=row.dataset.axialId;
+        const direction=document.getElementById(`axial-direction-${id}`).value;
+        const magnitude=Number(document.getElementById(`axial-magnitude-${id}`).value||0);
+        const location=Number(document.getElementById(`axial-location-${id}`).value||0)*12;
+        const offsetX=Number(document.getElementById(`axial-x-${id}`).value||0);
+        const offsetY=Number(document.getElementById(`axial-y-${id}`).value||0);
+        return {
+          P:(direction==="tension"?1:-1)*magnitude*1000,
+          x:Math.max(0,Math.min(location,L)),
+          ex:offsetX,
+          ey:offsetY,
+          id:Number(id)
+        };
+      }).filter(load=>Number.isFinite(load.P)&&load.P!==0);
+    }
+
+    function selectedShape() {
+      const material=document.getElementById("material").value;
+      return catalog[material][document.getElementById("shape").selectedIndex];
+    }
+
+    function populateShapes() {
+      const material=document.getElementById("material").value;
+      const shape=document.getElementById("shape");
+      shape.innerHTML=catalog[material].map(x=>`<option>${x.name}</option>`).join("");
+      calculate();
+    }
+
+    function pointLoads() {
+      return [...pointContainer.querySelectorAll(".load-row")].map(row=>{
+        const inputs=row.querySelectorAll("input");
+        return {P:Number(inputs[0].value||0)*1000,x:Number(inputs[1].value||0)*12};
+      }).filter(x=>Number.isFinite(x.P)&&Number.isFinite(x.x)&&x.P!==0);
+    }
+
+    function uniformLoad(L) {
+      const magnitude=Number(document.getElementById("udl").value||0);
+      const mode=document.getElementById("udlEnd").value;
+      const start=mode==="partial"?Number(document.getElementById("udlStart").value||0)*12:0;
+      const end=mode==="partial"?Number(document.getElementById("udlEndPos").value||0)*12:L;
+      return {w:magnitude*1000/12,start:Math.max(0,Math.min(start,L)),end:Math.max(0,Math.min(end,L))};
+    }
+
+    function arrayX(L,n=401) { return Array.from({length:n},(_,i)=>i*L/(n-1)); }
+    function cumulativeTrap(values,dx) {
+      const result=[0];
+      for(let i=1;i<values.length;i++) result.push(result[i-1]+(values[i-1]+values[i])*dx/2);
+      return result;
+    }
+
+    function calculate() {
+      const spanFt=Number(document.getElementById("span").value||0);
+      const L=spanFt*12;
+      if(!(L>0)) return;
+      const support=document.getElementById("support").value;
+      const shape=selectedShape();
+      const points=pointLoads();
+      const axials=axialLoads(L);
+      const udl=uniformLoad(L);
+      if(udl.end<udl.start) [udl.start,udl.end]=[udl.end,udl.start];
+      if(document.getElementById("selfWeight").checked) udl.w+=shape.weight/12;
+
+      const EI=shape.Ix*shape.E;
+      const xs=arrayX(L);
+      const shear=[],moment=[];
+      const totalPoint=points.reduce((sum,p)=>sum+p.P,0);
+      const totalUDL=udl.w*Math.max(0,udl.end-udl.start);
+      const totalLoad=totalPoint+totalUDL;
+      let RA=0,RB=0;
+      if(support==="simple") {
+        const pointMoment=points.reduce((sum,p)=>sum+p.P*p.x,0);
+        const udlMoment=udl.w*(udl.end*udl.end-udl.start*udl.start)/2;
+        RB=(pointMoment+udlMoment)/L;
+        RA=totalLoad-RB;
+      }
+
+      for(const x of xs) {
+        let v=0,m=0;
+        if(support==="simple") {
+          v=RA;m=RA*x;
+          for(const p of points) if(x>=p.x) {v-=p.P;m-=p.P*(x-p.x);}
+          if(udl.end>udl.start) {
+            const start=Math.max(udl.start,0),end=Math.min(x,udl.end);
+            if(end>start) {
+              const len=end-start;
+              v-=udl.w*len;
+              m-=udl.w*len*(x-(start+len/2));
+            }
+          }
+        }else{
+          for(const p of points) if(p.x>x) {v+=p.P;m+=p.P*(p.x-x);}
+          if(udl.end>x) {
+            const start=Math.max(x,udl.start),end=udl.end;
+            const len=Math.max(0,end-start);
+            v+=udl.w*len;
+            m+=udl.w*len*(start+len/2-x);
+          }
+        }
+        for(const load of axials) {
+          if(load.ey!==0) {
+            const strongMoment=load.P*load.ey;
+            if(support==="simple") {
+              m-=strongMoment*(x/L);
+              m+=x>=load.x?strongMoment:0;
+            }else{
+              m-=x<load.x?strongMoment:0;
+            }
+          }
+        }
+        shear.push(v);moment.push(m);
+      }
+
+      let deflection;
+      if(support==="simple") {
+        const dx=L/(xs.length-1);
+        const first=cumulativeTrap(moment,dx);
+        const second=cumulativeTrap(first,dx);
+        const C1=second[second.length-1]/(L*EI);
+        deflection=xs.map((x,i)=>C1*x-second[i]/EI);
+      }else{
+        const dx=L/(xs.length-1);
+        const first=cumulativeTrap(moment,dx);
+        const slope=first.map(v=>-v/EI);
+        deflection=cumulativeTrap(slope,dx);
+      }
+
+      const absV=shear.map(Math.abs),absM=moment.map(Math.abs),absD=deflection.map(Math.abs);
+      const vi=absV.indexOf(Math.max(...absV)),mi=absM.indexOf(Math.max(...absM)),di=absD.indexOf(Math.max(...absD));
+      const maxV=absV[vi],maxM=absM[mi],maxD=absD[di];
+      const maxMomentKipFt=maxM/12000;
+      const stressKsi=(maxM/1000)/shape.Sx;
+      const area=shape.area||shape.width*shape.depth;
+      const axialStressAtMaxMoment=axials.reduce((sum,load)=>sum+load.P/area/1000,0);
+      const weakMomentAtMaxMoment=axials.reduce((sum,load)=>sum+(load.P/1000)*load.ex,0);
+      const weakStressAtMaxMoment=weakMomentAtMaxMoment/(shape.Sy||shape.Iy/(shape.bf/2));
+      const combinedAtMaxMoment=[
+        axialStressAtMaxMoment+stressKsi+weakStressAtMaxMoment,
+        axialStressAtMaxMoment+stressKsi-weakStressAtMaxMoment,
+        axialStressAtMaxMoment-stressKsi+weakStressAtMaxMoment,
+        axialStressAtMaxMoment-stressKsi-weakStressAtMaxMoment
+      ].reduce((a,b)=>Math.abs(b)>Math.abs(a)?b:a,0);
+      const combinedStressKsi=Math.abs(combinedAtMaxMoment);
+      const limitIn=spanFt*12/360;
+
+      document.getElementById("maxV").textContent=`${(maxV/1000).toFixed(2)} kip at ${(xs[vi]/12).toFixed(2)} ft`;
+      document.getElementById("maxM").textContent=`${maxMomentKipFt.toFixed(2)} kip-ft at ${(xs[mi]/12).toFixed(2)} ft`;
+      document.getElementById("maxD").textContent=`${maxD.toFixed(3)} in at ${(xs[di]/12).toFixed(2)} ft`;
+
+      const bendingPass=combinedStressKsi<=shape.allow/1000;
+      const deflectionPass=maxD<=limitIn;
+      setCard("bendingCard","bendingText",bendingPass,`${combinedStressKsi.toFixed(2)} ksi combined / ${(shape.allow/1000).toFixed(2)} ksi (${((combinedStressKsi/(shape.allow/1000))*100).toFixed(0)}%)`);
+      setCard("deflectionCard","deflectionText",deflectionPass,`${maxD.toFixed(3)} in / ${limitIn.toFixed(3)} in (${((maxD/limitIn)*100).toFixed(0)}%)`);
+
+      drawBeam("beamChart",L,support,points,udl,axials);
+      drawChart("shearChart","Shear (kip)",xs,shear.map(v=>v/1000),"#2874a6");
+      drawChart("momentChart","Moment (kip-ft)",xs,moment.map(v=>v/12000),"#8a5c00");
+      drawChart("deflectionChart","Deflection (in)",xs,deflection,"#6a3d9a");
+      const sectionLocationFt=Number(document.getElementById("sectionLocation").value||0);
+      const sectionIndex=xs.reduce((best,current,index)=>
+        Math.abs(current-sectionLocationFt*12)<Math.abs(xs[best]-sectionLocationFt*12)?index:best,0);
+      const localMoment=moment[sectionIndex];
+      const localShear=shear[sectionIndex];
+      const bendingStressKsi=(localMoment/1000)/shape.Sx;
+      const shearArea=document.getElementById("material").value==="steel"
+        ? shape.d*shape.tw
+        : shape.width*shape.depth;
+      const shearStressKsi=localShear/shearArea/1000;
+      drawCrossSection("crossSectionChart",shape,bendingStressKsi,shearStressKsi,sectionLocationFt,sectionLocationFt,localMoment>=0,axials,moment,xs);
+
+      const source=document.getElementById("material").value==="steel"
+        ? `<strong>Steel properties:</strong> ASTM A36 assumption; educational allowable \(F_b=23.76\) ksi. AISC shape: ${shape.name}.<br><a href="${STEEL_URL}" target="_blank" rel="noopener">${STEEL_SOURCE}</a>`
+        : `<strong>Lumber properties:</strong> reference values before adjustment factors; normal duration and dry service assumptions. AWC shape: ${shape.name}.<br><a href="${NDS_URL}" target="_blank" rel="noopener">${NDS_SOURCE}</a>`;
+      document.getElementById("beamSource").innerHTML=source;
+    }
+
+    function setCard(cardId,textId,pass,text) {
+      const card=document.getElementById(cardId);
+      card.className=`check-card ${pass?"pass":"fail"}`;
+      document.getElementById(textId).textContent=`${pass?"PASS":"FAIL"} — ${text}`;
+    }
+
+    function drawChart(containerId,title,xs,ys,color) {
+      const container=document.getElementById(containerId);
+      const rect=container.getBoundingClientRect();
+      const width=rect.width||900,height=rect.height||170;
+      const margin={l:55,r:20,t:24,b:28},pw=width-margin.l-margin.r,ph=height-margin.t-margin.b;
+      let min=Math.min(...ys,0),max=Math.max(...ys,0);
+      if(Math.abs(max-min)<1e-9){min=-1;max=1;}
+      const y=v=>margin.t+(max-v)/(max-min)*ph;
+      const x=v=>margin.l+(v-xs[0])/(xs[xs.length-1]-xs[0])*pw;
+      const zero=y(0);
+      let path="";
+      for(let i=0;i<xs.length;i++) path+=(i?"L":"M")+x(xs[i]).toFixed(1)+","+y(ys[i]).toFixed(1)+" ";
+      container.innerHTML=`<svg role="img" aria-label="${title}" viewBox="0 0 ${width} ${height}">
+        <text x="${margin.l}" y="16" fill="#17324d" font-size="13" font-weight="700">${title}</text>
+        <line x1="${margin.l}" y1="${zero}" x2="${width-margin.r}" y2="${zero}" stroke="#96a7b2"/>
+        <line x1="${margin.l}" y1="${margin.t}" x2="${margin.l}" y2="${height-margin.b}" stroke="#ccd7df"/>
+        <path d="${path}" fill="none" stroke="${color}" stroke-width="2.5"/>
+        <text x="${margin.l-8}" y="${y(max)+4}" text-anchor="end" fill="#657783" font-size="11">${max.toFixed(2)}</text>
+        <text x="${margin.l-8}" y="${y(min)+4}" text-anchor="end" fill="#657783" font-size="11">${min.toFixed(2)}</text>
+        <text x="${margin.l}" y="${height-8}" fill="#657783" font-size="11">0 ft</text>
+        <text x="${width-margin.r}" y="${height-8}" text-anchor="end" fill="#657783" font-size="11">${(xs[xs.length-1]/12).toFixed(1)} ft</text>
+      </svg>`;
+    }
+
+    function drawCrossSection(containerId,shape,bendingStressKsi,shearStressKsi,momentLocationFt,shearLocationFt,positiveMoment,axials,moment,xs) {
+      const container=document.getElementById(containerId);
+      const rect=container.getBoundingClientRect();
+      const width=rect.width||900,height=rect.height||260;
+      const material=document.getElementById("material").value;
+      const sectionX=170,topY=58,sectionHeight=150;
+      const sectionCenterY=topY+sectionHeight/2;
+      let sectionSvg="";
+      let sectionTop=topY;
+      let sectionDepth=sectionHeight;
+      let sectionWidth=sectionHeight*(shape.width/shape.depth);
+
+      if(material==="steel") {
+        const depthScale=sectionHeight/shape.d;
+        sectionDepth=shape.d*depthScale;
+        const flangeScale=Math.min(110/shape.bf, sectionHeight/shape.d);
+        const flangeWidth=shape.bf*flangeScale;
+        const flangeHeight=shape.tf*depthScale;
+        const webWidth=Math.max(8,shape.tw*flangeScale);
+        sectionTop=topY+(sectionHeight-sectionDepth)/2;
+        sectionWidth=flangeWidth;
+        sectionSvg=`<rect x="${sectionX-flangeWidth/2}" y="${sectionTop}" width="${flangeWidth}" height="${flangeHeight}" rx="1" fill="#dce9f2" stroke="#17324d" stroke-width="2"/>
+          <rect x="${sectionX-webWidth/2}" y="${sectionTop+flangeHeight}" width="${webWidth}" height="${sectionDepth-2*flangeHeight}" fill="#a9c8dd" stroke="#17324d" stroke-width="2"/>
+          <rect x="${sectionX-flangeWidth/2}" y="${sectionTop+sectionDepth-flangeHeight}" width="${flangeWidth}" height="${flangeHeight}" rx="1" fill="#dce9f2" stroke="#17324d" stroke-width="2"/>`;
+      }else{
+        const actualRatio=shape.width/shape.depth;
+        const lumberHeight=sectionHeight;
+        const lumberWidth=Math.max(24,lumberHeight*actualRatio);
+        sectionWidth=lumberWidth;
+        sectionSvg=`<rect x="${sectionX-lumberWidth/2}" y="${topY}" width="${lumberWidth}" height="${lumberHeight}" rx="2" fill="#d8c9a6" stroke="#17324d" stroke-width="2"/>`;
+      }
+
+      let axialSvg="";
+      let combinedSummary="No axial loads entered.";
+      let maxCombinedKsi=0;
+      let combinedLocationFt=0;
+      if(axials.length) {
+        maxCombinedKsi=-Infinity;
+        for(const load of axials) {
+          const nearest=xs.reduce((best,current,index)=>
+            Math.abs(current-load.x)<Math.abs(xs[best]-load.x)?index:best,0);
+          const axialStress=(load.P/1000)/(shape.area||shape.width*shape.depth);
+          const strongMoment=moment[nearest]/1000;
+          const weakMoment=(load.P/1000)*load.ex;
+          const strongStress=strongMoment/shape.Sx;
+          const weakStress=weakMoment/(shape.Sy||shape.Iy/(shape.bf/2));
+          const corners=[
+            axialStress+strongStress+weakStress,
+            axialStress+strongStress-weakStress,
+            axialStress-strongStress+weakStress,
+            axialStress-strongStress-weakStress
+          ];
+          const governing=corners.reduce((a,b)=>Math.abs(b)>Math.abs(a)?b:a,0);
+          if(Math.abs(governing)>Math.abs(maxCombinedKsi)) {
+            maxCombinedKsi=governing;
+            combinedLocationFt=load.x/12;
+          }
+          const markerX=sectionX+(load.ex/(shape.bf/2||1))*(sectionWidth/2);
+          const markerY=sectionTop+(sectionDepth/2)-(load.ey/(shape.d/2||1))*(sectionDepth/2);
+          const color=load.P>0?"#1f7a4d":"#b42318";
+          const label=load.P>0?"T":"C";
+          const isSelected=load.id===selectedAxialId;
+          axialSvg+=`<circle cx="${markerX}" cy="${markerY}" r="${isSelected?7:5}" fill="${color}" stroke="${isSelected?"#111":"#fff"}" stroke-width="${isSelected?3:2}" data-axial-id="${load.id}">
+              <title>${load.P>0?"Tension":"Compression"} ${Math.abs(load.P/1000).toFixed(2)} kip at (${load.ex.toFixed(2)}, ${load.ey.toFixed(2)}) in</title>
+            </circle>
+            <text x="${markerX}" y="${markerY+3}" text-anchor="middle" fill="white" font-size="8" font-weight="700">${label}</text>`;
+        }
+        combinedSummary=`Maximum combined stress = ${maxCombinedKsi.toFixed(3)} ksi at axial load location ${combinedLocationFt.toFixed(2)} ft (axial + eccentric bending).`;
+      }
+
+      const positiveLabel=positiveMoment?`+${bendingStressKsi.toFixed(2)} ksi`:`-${bendingStressKsi.toFixed(2)} ksi`;
+      const negativeLabel=positiveMoment?`-${bendingStressKsi.toFixed(2)} ksi`:`+${bendingStressKsi.toFixed(2)} ksi`;
+      const signLabel=positiveMoment?"top compression / bottom tension":"top tension / bottom compression";
+      const shearMethod=material==="steel"
+        ? `Average web shear V/(d × t<sub>w</sub>)`
+        : "Average shear V/A";
+
+      container.innerHTML=`<svg role="img" aria-label="Cross section stresses" viewBox="0 0 ${width} ${height}">
+        <text x="20" y="18" fill="#17324d" font-size="13" font-weight="700">Cross section stresses</text>
+        ${sectionSvg}
+        <line x1="${sectionX}" y1="${topY-6}" x2="${sectionX}" y2="${topY+sectionHeight+6}" stroke="#7a8b96" stroke-width="1" stroke-dasharray="5 5"/>
+        <line x1="${sectionX-85}" y1="${topY+sectionHeight/2}" x2="${sectionX+85}" y2="${topY+sectionHeight/2}" stroke="#9aabb5" stroke-width="1" stroke-dasharray="4 4"/>
+        <path d="M${sectionX+95} ${topY} L${sectionX+95} ${topY+sectionHeight/2}" fill="none" stroke="#b42318" stroke-width="3"/>
+        <polygon points="${sectionX+95},${topY} ${sectionX+90},${topY+12} ${sectionX+100},${topY+12}" fill="#b42318"/>
+        <text x="${sectionX+105}" y="${topY+18}" fill="#b42318" font-size="12" font-weight="700">${positiveLabel}</text>
+        <path d="M${sectionX+95} ${topY+sectionHeight/2} L${sectionX+95} ${topY+sectionHeight}" fill="none" stroke="#2874a6" stroke-width="3"/>
+        <polygon points="${sectionX+95},${topY+sectionHeight} ${sectionX+90},${topY+sectionHeight-12} ${sectionX+100},${topY+sectionHeight-12}" fill="#2874a6"/>
+        <text x="${sectionX+105}" y="${topY+sectionHeight-12}" fill="#2874a6" font-size="12" font-weight="700">${negativeLabel}</text>
+        <text x="20" y="${topY+sectionHeight+32}" fill="#657783" font-size="12">Bending stress at x = ${momentLocationFt.toFixed(2)} ft</text>
+        <text x="20" y="${topY+sectionHeight+50}" fill="#657783" font-size="12">f<sub>b</sub> = M/S<sub>x</sub>; maximum edge stress = ${bendingStressKsi.toFixed(2)} ksi (${signLabel})</text>
+        <text x="20" y="${topY+sectionHeight+68}" fill="#657783" font-size="12">Shear stress at x = ${shearLocationFt.toFixed(2)} ft: ${shearStressKsi.toFixed(3)} ksi</text>
+        <text x="20" y="${topY+sectionHeight+86}" fill="#657783" font-size="12">${shearMethod}; educational approximation</text>
+        ${axialSvg}
+        <text x="${sectionX+105}" y="${topY+sectionHeight+32}" fill="#17324d" font-size="12" font-weight="700">${combinedSummary}</text>
+        <text x="${sectionX+105}" y="${topY+sectionHeight+50}" fill="#657783" font-size="11">T = tension; C = compression</text>
+      </svg>`;
+
+      container.querySelectorAll("[data-axial-id]").forEach(marker=>{
+        marker.addEventListener("click",()=>{
+          selectedAxialId=Number(marker.dataset.axialId);
+          calculate();
+        });
+      });
+      container.onclick=(event)=>{
+        if(!selectedAxialId || !axials.length) return;
+        const svg=container.querySelector("svg");
+        if(!svg) return;
+        const point=svg.createSVGPoint();
+        point.x=event.clientX;
+        point.y=event.clientY;
+        const svgPoint=point.matrixTransform(svg.getScreenCTM().inverse());
+        if(svgPoint.x<sectionX-sectionWidth/2 || svgPoint.x>sectionX+sectionWidth/2 ||
+           svgPoint.y<sectionTop || svgPoint.y>sectionTop+sectionDepth) return;
+        const ex=((svgPoint.x-sectionX)/(sectionWidth/2)*(shape.bf/2)).toFixed(2);
+        const ey=((sectionTop+sectionDepth/2-svgPoint.y)/(sectionDepth/2)*(shape.d/2)).toFixed(2);
+        const row=[...axialContainer.querySelectorAll(".axial-row")]
+          .find(item=>item.dataset.axialId===String(selectedAxialId));
+        if(row) {
+          document.getElementById(`axial-x-${selectedAxialId}`).value=ex;
+          document.getElementById(`axial-y-${selectedAxialId}`).value=ey;
+          calculate();
+        }
+      };
+    }
+
+    function drawBeam(containerId,L,support,points,udl,axials) {
+      const container=document.getElementById(containerId);
+      const rect=container.getBoundingClientRect();
+      const width=rect.width||900,height=rect.height||170,left=55,right=20,top=55,beamY=82,beamLength=width-left-right;
+      const x=ft=>left+(ft*12/L)*beamLength;
+      let pointSvg=points.map(p=>`<line x1="${x(p.x/12)}" y1="${top-8}" x2="${x(p.x/12)}" y2="${beamY-5}" stroke="#b42318" stroke-width="2"/>
+        <polygon points="${x(p.x/12)},${top-8} ${x(p.x/12)-7},${top+5} ${x(p.x/12)+7},${top+5}" fill="#b42318"/>`).join("");
+      let udlSvg="";
+      if(udl.end>udl.start) {
+        const u1=x(udl.start/12),u2=x(udl.end/12);
+        udlSvg=`<rect x="${u1}" y="${top-20}" width="${u2-u1}" height="5" fill="#2874a6"/>`;
+        for(let px=u1+8;px<u2;px+=14) udlSvg+=`<line x1="${px}" y1="${top-15}" x2="${px}" y2="${beamY-7}" stroke="#2874a6" stroke-width="1"/>`;
+      }
+      let axialSvg="";
+      for(const load of axials) {
+        const loadX=x(load.x/12);
+        const tension=load.P>0;
+        const color=tension?"#1f7a4d":"#b42318";
+        const label=tension?"T":"C";
+        if(tension) {
+          axialSvg+=`<line x1="${loadX-24}" y1="${beamY-38}" x2="${loadX-8}" y2="${beamY-38}" stroke="${color}" stroke-width="3" marker-end="url(#axialArrow)"/>
+            <line x1="${loadX+24}" y1="${beamY-38}" x2="${loadX+8}" y2="${beamY-38}" stroke="${color}" stroke-width="3" marker-end="url(#axialArrow)"/>`;
+        }else{
+          axialSvg+=`<line x1="${loadX-8}" y1="${beamY-38}" x2="${loadX-24}" y2="${beamY-38}" stroke="${color}" stroke-width="3" marker-end="url(#axialArrow)"/>
+            <line x1="${loadX+8}" y1="${beamY-38}" x2="${loadX+24}" y2="${beamY-38}" stroke="${color}" stroke-width="3" marker-end="url(#axialArrow)"/>`;
+        }
+        axialSvg+=`<circle cx="${loadX}" cy="${beamY-38}" r="9" fill="${color}" stroke="#fff" stroke-width="2"/>
+          <text x="${loadX}" y="${beamY-34}" text-anchor="middle" fill="white" font-size="9" font-weight="700">${label}</text>
+          <text x="${loadX}" y="${beamY-48}" text-anchor="middle" fill="${color}" font-size="10" font-weight="700">${Math.abs(load.P/1000).toFixed(2)} kip</text>`;
+      }
+      const sectionFt=Number(document.getElementById("sectionLocation").value||0);
+      const sectionX=x(sectionFt);
+      const sectionMarker=`<line x1="${sectionX}" y1="${top}" x2="${sectionX}" y2="${beamY+12}" stroke="#6a3d9a" stroke-width="2" stroke-dasharray="5 4"/>
+        <circle cx="${sectionX}" cy="${beamY}" r="5" fill="#6a3d9a"/>
+        <text x="${sectionX}" y="${top+8}" text-anchor="middle" fill="#6a3d9a" font-size="10" font-weight="700">${sectionFt.toFixed(1)} ft</text>`;
+      const leftSupport=support==="simple"
+        ? `<path d="M${left},${beamY+7} l-13,16 l26,0 z" fill="#657783"/>`
+        : `<rect x="${left-10}" y="${beamY-18}" width="10" height="36" fill="#657783"/>`;
+      const rightSupport=support==="simple"?`<path d="M${left+beamLength},${beamY+7} l-13,16 l26,0 z" fill="#657783"/>`:"";
+      container.innerHTML=`<svg role="img" aria-label="Beam diagram" viewBox="0 0 ${width} ${height}">
+        <defs><marker id="axialArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#17324d"/></marker></defs>
+        <text x="${left}" y="16" fill="#17324d" font-size="13" font-weight="700">Beam diagram</text>
+        <line x1="${left}" y1="${beamY}" x2="${left+beamLength}" y2="${beamY}" stroke="#17324d" stroke-width="8"/>
+        ${leftSupport}${rightSupport}${pointSvg}${udlSvg}${axialSvg}${sectionMarker}
+        <text x="${left}" y="${height-8}" fill="#657783" font-size="11">0 ft</text>
+        <text x="${left+beamLength}" y="${height-8}" text-anchor="end" fill="#657783" font-size="11">${(L/12).toFixed(1)} ft</text>
+      </svg>`;
+    }
+
+    document.getElementById("material").addEventListener("change",populateShapes);
+    document.getElementById("support").addEventListener("change",calculate);
+    document.getElementById("span").addEventListener("input",()=>{
+      const span=Number(document.getElementById("span").value||0);
+      const slider=document.getElementById("sectionSlider");
+      const number=document.getElementById("sectionLocation");
+      slider.max=Math.max(0,span);
+      number.max=Math.max(0,span);
+      if(Number(number.value)>span) number.value=span;
+      slider.value=number.value;
+      calculate();
+    });
+    document.getElementById("sectionSlider").addEventListener("input",e=>{
+      document.getElementById("sectionLocation").value=e.target.value;
+      calculate();
+    });
+    document.getElementById("sectionLocation").addEventListener("input",e=>{
+      const span=Number(document.getElementById("span").value||0);
+      const value=Math.max(0,Math.min(Number(e.target.value||0),span));
+      document.getElementById("sectionSlider").value=value;
+      e.target.value=value;
+      calculate();
+    });
+    document.getElementById("shape").addEventListener("change",calculate);
+    document.getElementById("udl").addEventListener("input",calculate);
+    document.getElementById("udlStart").addEventListener("input",calculate);
+    document.getElementById("udlEndPos").addEventListener("input",calculate);
+    document.getElementById("udlEnd").addEventListener("change",e=>{
+      document.getElementById("udlRange").style.display=e.target.value==="partial"?"grid":"none";
+      calculate();
+    });
+    document.getElementById("selfWeight").addEventListener("change",calculate);
+    document.getElementById("addPoint").addEventListener("click",()=>{
+      addPointLoad();
+      if(pointContainer.children.length>=maxPointLoads) document.getElementById("addPoint").disabled=true;
+      calculate();
+    });
+    document.getElementById("addAxial").addEventListener("click",()=>{
+      addAxialLoad();
+      if(axialContainer.children.length>=maxAxialLoads) document.getElementById("addAxial").disabled=true;
+      calculate();
+    });
+    window.addEventListener("resize",calculate);
+
+    populateShapes();
+  </script>
+</body>
+</html>
