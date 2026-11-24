@@ -26,7 +26,7 @@ Ix = 204 in⁴.
 - Fixed reaction = 10 kip
 - Vmax = 10 kip
 - Mmax = PL = 200 kip-ft at the fixed end
-- δmax = PL³/(3EI) = 7.787 in at the free end
+- δmax = PL³/(3EI) = 7.7890 in at the free end
 
 ## 4. Partial distributed load
 
@@ -35,6 +35,8 @@ Ix = 204 in⁴.
 - Resultant = 10 kip at x = 10 ft
 - RA = RB = 5 kip
 - Mmax = 37.5 kip-ft at x = 10 ft
+- By symmetry and virtual work,
+  δmax = 2∫₀^(L/2) Mm/(EI) dx = 0.43357 in at x = 10 ft
 
 ## 5. Representative lumber beam
 
@@ -44,7 +46,7 @@ Ix = 204 in⁴.
 - L = 12 ft; w = 0.1 kip/ft
 - RA = RB = 0.6 kip
 - Mmax = wL²/8 = 1.8 kip-ft
-- δmax = 5wL⁴/(384EI) = 0.1787 in
+- δmax = 5wL⁴/(384EI) = 0.29475 in
 
 The corresponding automated cases are retained in `tests/test_analysis.py` and
 exercise the calculation layer without creating a Tkinter window.

@@ -11,3 +11,7 @@
 - Asked: Read spec.md and build the described Python/Tkinter desktop app, using the HTML prototype as the behavioral reference.
 - Changed: Built a standard-library Tkinter Beam Designer with live input validation, dynamic point and axial loads, full/partial distributed loads, self-weight, steel and lumber catalogs, simply supported and cantilever analysis, utilization checks, five resizable canvas views, an interactive cross-section selector, documented source data, hand-validation cases, and headless automated tests.
 - Worked: Yes. All 8 calculation tests passed, Python compilation passed, and hidden-window Tkinter startup and interaction smoke tests passed.
+
+- Asked: Run every validation case in spec.md against the app's beam calculations and report expected versus actual values in a table.
+- Changed: Executed all five retained steel and lumber cases with self-weight disabled, compared reactions, maximum shear, moment, deflection, and locations against closed-form solutions, and corrected stale cantilever and lumber deflection values plus the missing partial-UDL deflection in the retained hand calculations.
+- Worked: Yes. All statics values matched at the reported precision; every deflection result was within 0.0000031 in of its closed-form value, and all automated tests passed.
