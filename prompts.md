@@ -31,3 +31,7 @@
 - Asked: Make sure the last three added features are included in spec.md.
 - Changed: Verified Save/Open, CSV results export, and PDF calculation sheets were present, then consolidated them into a dedicated Files and exports section with their formats, required content, cancellation behavior, and error-handling requirements.
 - Worked: Yes. All three features are now explicitly grouped and specified in spec.md.
+
+- Asked: Write a short README.md explaining what the app does, which packages to install, and the command that starts it.
+- Changed: Replaced the longer feature guide with a concise overview, stated that Python 3 and Tkinter are required with no pip dependencies, included the Ubuntu/Debian installation command, and retained the `python3 main.py` launch command.
+- Worked: Yes. README.md now contains only the requested setup and startup information.
