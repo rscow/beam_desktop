@@ -23,8 +23,6 @@ final structural-design tool.
   input when a calculation cannot run.
 - Bundle member-property data with the application. The MVP does not require a
   database or external service.
-- Provide a File menu with Save and Open commands. Save designs to a local file
-  and restore them without requiring a network connection.
 
 ## Window layout
 
@@ -138,16 +136,26 @@ Catalog values and any adjustments must be sourced and documented in
 - Pass/fail and utilization for deflection
 - Numeric units clearly shown
 - Positive and negative sign conventions clearly identified
-- An Export results button that saves x, shear, moment, and deflection values
-  along the beam as an Excel-compatible CSV file with units in the headers
-- A Calculation sheet button that saves a hand-in-ready PDF with design inputs
-  at the top, governing checks, beam and load graphics, shear, moment and
-  deflection diagrams, cross-section stresses, assumptions, units, and sign
-  conventions
 
 Draw diagrams and cross sections in Tkinter canvases. Diagrams must resize with
 the window and show labeled axes, values, and units without requiring a plotting
 or web framework.
+
+## Files and exports
+
+- Provide a File menu with Save and Open commands. Save designs to a local,
+  versioned JSON file and restore them without requiring a network connection.
+- Provide an Export results button that saves every calculated station as an
+  Excel-compatible CSV table with `x (ft)`, `V (kip)`, `M (kip-ft)`, and
+  `deflection (in)` columns.
+- Provide a Calculation sheet button that saves a hand-in-ready PDF with the
+  complete design inputs at the top, governing values and checks, beam and load
+  graphics, shear, moment and deflection diagrams, cross-section stresses,
+  assumptions, limitations, units, sign conventions, timestamp, and page
+  numbers.
+
+Canceling a file dialog must leave the current design unchanged. File errors
+must be shown to the user without closing the application.
 
 ## Validation
 

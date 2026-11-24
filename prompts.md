@@ -27,3 +27,7 @@
 - Asked: Add a Calculation sheet button that saves the diagrams and checks as a PDF, with inputs at the top, ready to hand in with a design.
 - Changed: Added a Calculation sheet button and dependency-free two-page vector PDF generator containing the complete design inputs, governing values, bending and deflection checks, beam/load graphic, shear, moment and deflection diagrams, cross-section stresses, calculation basis, assumptions, limitations, units, sign conventions, generated timestamp, and page numbering; updated the spec and README; and added PDF content and structural-integrity tests.
 - Worked: Yes. All 17 automated tests passed, Python compilation passed, a worst-case report render was visually checked, and a hidden-window button smoke test created a valid two-page PDF.
+
+- Asked: Make sure the last three added features are included in spec.md.
+- Changed: Verified Save/Open, CSV results export, and PDF calculation sheets were present, then consolidated them into a dedicated Files and exports section with their formats, required content, cancellation behavior, and error-handling requirements.
+- Worked: Yes. All three features are now explicitly grouped and specified in spec.md.
