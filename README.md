@@ -26,3 +26,7 @@ deflection limit, section-view location, self-weight setting, and all loads.
 Use **Export results…** to save every calculated station to a CSV table with
 x, shear, moment, and deflection columns. The UTF-8 CSV includes units in its
 headers and opens directly in Excel.
+
+Use **Calculation sheet…** to save a two-page PDF with the design inputs,
+governing bending and deflection checks, beam and load diagram, shear, moment,
+and deflection diagrams, cross-section stresses, and calculation assumptions.

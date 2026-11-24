@@ -140,6 +140,10 @@ Catalog values and any adjustments must be sourced and documented in
 - Positive and negative sign conventions clearly identified
 - An Export results button that saves x, shear, moment, and deflection values
   along the beam as an Excel-compatible CSV file with units in the headers
+- A Calculation sheet button that saves a hand-in-ready PDF with design inputs
+  at the top, governing checks, beam and load graphics, shear, moment and
+  deflection diagrams, cross-section stresses, assumptions, units, and sign
+  conventions
 
 Draw diagrams and cross sections in Tkinter canvases. Diagrams must resize with
 the window and show labeled axes, values, and units without requiring a plotting

@@ -8,6 +8,7 @@ from tkinter import filedialog, messagebox, ttk
 from .analysis import AnalysisInput, AxialLoad, PointLoad, UniformLoad, analyze
 from .catalog import CATALOG, Member
 from .persistence import SavedDesign, open_design, save_design
+from .report_pdf import create_calculation_sheet
 from .results_export import export_results_csv
 
 
@@ -175,6 +176,7 @@ class BeamDesignerApp:
         section_entry.pack(side="left")
         ttk.Label(section_controls, text="ft").pack(side="left", padx=(3, 0))
         ttk.Button(section_controls, text="Export results…", command=self.export_results).pack(side="left", padx=(12, 0))
+        ttk.Button(section_controls, text="Calculation sheet…", command=self.save_calculation_sheet).pack(side="left", padx=(6, 0))
         section_entry.bind("<Return>", self._section_entry_changed)
         section_entry.bind("<FocusOut>", self._section_entry_changed)
 
@@ -440,6 +442,31 @@ class BeamDesignerApp:
             messagebox.showerror("Cannot export results", str(error), parent=self.root)
             return
         self.status_var.set(f"Exported {len(result.x_ft)} result rows to {path}")
+
+    def save_calculation_sheet(self) -> None:
+        try:
+            inputs = self._read_inputs()
+            result = analyze(inputs)
+            section_location = float(self.section_var.get())
+            if not 0 <= section_location <= inputs.span_ft:
+                raise ValueError("Cross-section location must be on the beam.")
+        except (ValueError, KeyError, StopIteration) as error:
+            messagebox.showerror("Cannot create calculation sheet", str(error), parent=self.root)
+            return
+        path = filedialog.asksaveasfilename(
+            parent=self.root,
+            title="Save calculation sheet",
+            defaultextension=".pdf",
+            filetypes=(("PDF files", "*.pdf"), ("All files", "*.*")),
+        )
+        if not path:
+            return
+        try:
+            create_calculation_sheet(path, inputs, result, self.material_var.get(), section_location)
+        except (OSError, ValueError) as error:
+            messagebox.showerror("Cannot create calculation sheet", str(error), parent=self.root)
+            return
+        self.status_var.set(f"Saved calculation sheet to {path}")
 
     def _apply_design(self, design: SavedDesign) -> None:
         inputs = design.analysis_input()

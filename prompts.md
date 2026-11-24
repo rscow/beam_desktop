@@ -23,3 +23,7 @@
 - Asked: Add an Export results button that saves x, shear, moment, and deflection along the beam to a CSV file that opens in Excel.
 - Changed: Added an Export results button that recalculates current inputs and writes every analysis station to a `.csv` file with x (ft), V (kip), M (kip-ft), and deflection (in) columns; used an Excel-friendly UTF-8 BOM and CRLF rows; updated the spec and README; and added export tests.
 - Worked: Yes. All 15 automated tests passed, Python compilation passed, and a hidden-window button smoke test exported and reread all 801 result rows successfully.
+
+- Asked: Add a Calculation sheet button that saves the diagrams and checks as a PDF, with inputs at the top, ready to hand in with a design.
+- Changed: Added a Calculation sheet button and dependency-free two-page vector PDF generator containing the complete design inputs, governing values, bending and deflection checks, beam/load graphic, shear, moment and deflection diagrams, cross-section stresses, calculation basis, assumptions, limitations, units, sign conventions, generated timestamp, and page numbering; updated the spec and README; and added PDF content and structural-integrity tests.
+- Worked: Yes. All 17 automated tests passed, Python compilation passed, a worst-case report render was visually checked, and a hidden-window button smoke test created a valid two-page PDF.
